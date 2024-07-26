@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -25,6 +26,14 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
   void initState() {
     super.initState();
     getSettingsData();
+
+    String? email = FirebaseAuth.instance.currentUser!.email;
+
+    if (email != null) {
+      setState(() {
+        username = email.split('@')[0];
+      });
+    }
   }
 
   Future<void> getSettingsData() async {
@@ -40,20 +49,19 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
         });
       }
     } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$error')),
+      Fluttertoast.showToast(
+        msg: 'Failed to load data: $error',
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.SNACKBAR,
+        timeInSecForIosWeb: 1,
+        backgroundColor: Colors.red,
+        textColor: Colors.black,
+        fontSize: 16.0,
       );
     }
   }
 
   Future<Uint8List> _generatePdf(PdfPageFormat format) async {
-    String? email = FirebaseAuth.instance.currentUser!.email;
-
-    if (email != null) {
-      setState(() {
-        username = email.split('@')[0];
-      });
-    }
 
     final pdf = pw.Document();
 
@@ -172,7 +180,7 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
               ),
             ),
             const SizedBox(
-              height: 10,
+              height: 20,
             ),
             Align(
               alignment: Alignment.center,
@@ -211,13 +219,29 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
               ],
             ),
             const SizedBox(
-              height: 10,
+              height: 20,
             ),
-            Flexible(
-              child: Text(
-                'Barcodes: ${widget.report['barcodes'].join(', ')}', // Assuming barcodes is a List
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            // Title and ListView for barcodes
+            const Text(
+              'Barcode List:',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            // Add a container to specify height for ListView
+            SizedBox(
+              height: 150, // Adjust height as needed
+              child: ListView.builder(
+                itemCount: widget.report['barcodes'].length,
+                itemBuilder: (context, index) {
+                  return ListTile(
+                    title: Text(
+                      widget.report['barcodes'][index],
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  );
+                },
               ),
             ),
             const SizedBox(

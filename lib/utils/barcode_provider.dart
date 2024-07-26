@@ -4,11 +4,11 @@ import 'package:flutter_blue/flutter_blue.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
 class BarcodeProvider with ChangeNotifier {
-  static const platform = MethodChannel('com.example.barcode/usb');
+  static const platform = MethodChannel('com.example.parcel_counting_system/scanner');
 
   final FlutterBlue _flutterBlue = FlutterBlue.instance;
-  final List<String> _barcodes = [];
-  List<String> get barcodes => _barcodes;
+  String get barcodes => scannedData;
+  String scannedData = '';
 
   BarcodeProvider(BuildContext context) {
     // Initialize both Bluetooth and general barcode scanning
@@ -17,7 +17,6 @@ class BarcodeProvider with ChangeNotifier {
   }
 
   void _initBluetooth() {
-    // Start scanning for Bluetooth devices
     _flutterBlue.scanResults.listen((results) {
       for (ScanResult r in results) {
         _connectToDevice(r.device);
@@ -29,7 +28,6 @@ class BarcodeProvider with ChangeNotifier {
 
   void _connectToDevice(BluetoothDevice device) async {
     await device.connect();
-    // Display toast with the connected device name
     Fluttertoast.showToast(
       msg: "Connected to ${device.name}",
       toastLength: Toast.LENGTH_SHORT,
@@ -39,15 +37,13 @@ class BarcodeProvider with ChangeNotifier {
       textColor: Colors.white,
       fontSize: 16.0,
     );
-    // Discover services
     List<BluetoothService> services = await device.discoverServices();
     for (BluetoothService service in services) {
-      // Get the correct characteristic (update with your device's characteristic UUID)
       var characteristics = service.characteristics;
       for (BluetoothCharacteristic c in characteristics) {
         c.value.listen((value) {
-          String barcode = String.fromCharCodes(value);
-          addBarcode(barcode);
+          scannedData = String.fromCharCodes(value);
+          notifyListeners();
         });
         c.setNotifyValue(true);
       }
@@ -56,28 +52,15 @@ class BarcodeProvider with ChangeNotifier {
 
   void _initUSB() {
     platform.setMethodCallHandler((MethodCall call) async {
-      if (call.method == 'onBarcodeScanned') {
-        String barcode = call.arguments;
-        addBarcode(barcode);
+      if (call.method == 'onScannedData') {
+        scannedData += call.arguments;
+        notifyListeners();
       } else if (call.method == 'onDeviceConnected') {
         String deviceName = call.arguments;
         _showUsbConnectedToast(deviceName);
       }
     });
-    // Initialize USB connection on the native side
     _initializeUSBConnection();
-  }
-
-  void _showUsbConnectedToast(String deviceName) {
-    Fluttertoast.showToast(
-      msg: "Connected to $deviceName",
-      toastLength: Toast.LENGTH_SHORT,
-      gravity: ToastGravity.BOTTOM,
-      timeInSecForIosWeb: 1,
-      backgroundColor: Colors.blue,
-      textColor: Colors.white,
-      fontSize: 16.0,
-    );
   }
 
   Future<void> _initializeUSBConnection() async {
@@ -96,13 +79,20 @@ class BarcodeProvider with ChangeNotifier {
     }
   }
 
-  void addBarcode(String barcode) {
-    _barcodes.add(barcode);
-    notifyListeners();
+  void _showUsbConnectedToast(String deviceName) {
+    Fluttertoast.showToast(
+      msg: "Connected to $deviceName",
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.BOTTOM,
+      timeInSecForIosWeb: 1,
+      backgroundColor: Colors.blue,
+      textColor: Colors.white,
+      fontSize: 16.0,
+    );
   }
 
   void clearBarcodes() {
-    _barcodes.clear();
+    scannedData = "";
     notifyListeners();
   }
 }

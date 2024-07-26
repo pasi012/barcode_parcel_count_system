@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:parcel_counting_system/home/reports/report_detail_screen.dart';
 import '../../utils/footer.dart';
 
@@ -44,8 +45,14 @@ class _ReportScreenState extends State<ReportScreen> {
         });
       }
     } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load data: $error')),
+      Fluttertoast.showToast(
+        msg: 'Failed to load data: $error',
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.SNACKBAR,
+        timeInSecForIosWeb: 1,
+        backgroundColor: Colors.red,
+        textColor: Colors.black,
+        fontSize: 16.0,
       );
     }
   }

@@ -48,8 +48,14 @@ class _LoginScreenState extends State<LoginScreen> {
         });
       }
     } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$error')),
+      Fluttertoast.showToast(
+        msg: 'Failed to load data: $error',
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.SNACKBAR,
+        timeInSecForIosWeb: 1,
+        backgroundColor: Colors.red,
+        textColor: Colors.black,
+        fontSize: 16.0,
       );
     }
   }
@@ -68,7 +74,9 @@ class _LoginScreenState extends State<LoginScreen> {
             Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const SizedBox(height: 50,),
+                const SizedBox(
+                  height: 50,
+                ),
                 const Text(
                   "Parcel Counting System",
                   style: TextStyle(
@@ -93,17 +101,17 @@ class _LoginScreenState extends State<LoginScreen> {
                   padding: const EdgeInsets.only(bottom: 30),
                   child: logoImage.isEmpty
                       ? Image.asset(
-                    'assets/images/logo.png',
-                    fit: BoxFit.fill,
-                    height: screenHeight * 0.1,
-                    width: screenWidth * 0.2,
-                  )
+                          'assets/images/logo.png',
+                          fit: BoxFit.fill,
+                          height: screenHeight * 0.1,
+                          width: screenWidth * 0.2,
+                        )
                       : Image.network(
-                    logoImage,
-                    fit: BoxFit.fill,
-                    height: screenHeight * 0.1,
-                    width: screenWidth * 0.2,
-                  ),
+                          logoImage,
+                          fit: BoxFit.fill,
+                          height: screenHeight * 0.1,
+                          width: screenWidth * 0.2,
+                        ),
                 ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 30.0),
@@ -138,8 +146,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           decoration: InputDecoration(
                             filled: true,
                             fillColor: Colors.grey[200], // Background color
-                            hintText:
-                            'Enter Your Name', // Floating label text
+                            hintText: 'Enter Your Name', // Floating label text
                             hintStyle: const TextStyle(
                                 color: Colors
                                     .grey), // Color of the floating label text
@@ -152,8 +159,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               borderRadius: BorderRadius.circular(
                                   8.0), // Rounded corners when focused (optional)
                               borderSide: const BorderSide(
-                                  color: Colors
-                                      .blue), // Border color when focused
+                                  color:
+                                      Colors.blue), // Border color when focused
                             ),
                           ),
                           style: const TextStyle(color: Colors.black),
@@ -161,7 +168,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(
                           height: 15,
                         ),
-        
+
                         // Password
                         const Align(
                           alignment: Alignment.topLeft,
@@ -180,7 +187,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           validator: (value) {
                             if (value!.length < 7) {
                               return "Please enter 8 digits number";
-                            }if(value.isEmpty){
+                            }
+                            if (value.isEmpty) {
                               return "This Field is missing";
                             } else {
                               return null;
@@ -192,7 +200,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             filled: true,
                             fillColor: Colors.grey[200], // Background color
                             hintText:
-                            'Enter Your Password', // Floating label text
+                                'Enter Your Password', // Floating label text
                             hintStyle: const TextStyle(
                                 color: Colors
                                     .grey), // Color of the floating label text
@@ -205,8 +213,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               borderRadius: BorderRadius.circular(
                                   8.0), // Rounded corners when focused (optional)
                               borderSide: const BorderSide(
-                                  color: Colors
-                                      .blue), // Border color when focused
+                                  color:
+                                      Colors.blue), // Border color when focused
                             ),
                           ),
                           style: const TextStyle(color: Colors.black),
@@ -218,7 +226,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 10,),
+                const SizedBox(
+                  height: 10,
+                ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 50.0),
                   child: SizedBox(
@@ -238,20 +248,30 @@ class _LoginScreenState extends State<LoginScreen> {
                           setState(() {
                             _isLoading = true;
                           });
-        
+
                           try {
                             var user =
-                            await _authService.loginWithUsernamePassword(
-                                _fullNameController.text.trim(),
-                                _passTextController.text.trim());
-        
+                                await _authService.loginWithUsernamePassword(
+                                    _fullNameController.text.trim(),
+                                    _passTextController.text.trim());
+
                             if (user != null) {
                               // Navigate to home screen
                               Navigator.pushReplacement(
                                   context,
                                   MaterialPageRoute(
                                       builder: (context) =>
-                                      const HomeScreen()));
+                                          const HomeScreen()));
+
+                              Fluttertoast.showToast(
+                                msg: 'Login Successful',
+                                toastLength: Toast.LENGTH_SHORT,
+                                gravity: ToastGravity.SNACKBAR,
+                                timeInSecForIosWeb: 1,
+                                backgroundColor: Colors.green,
+                                textColor: Colors.black,
+                                fontSize: 16.0,
+                              );
                             } else {
                               setState(() {
                                 Fluttertoast.showToast(
@@ -286,8 +306,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       },
                       child: Text(
                         "login".toUpperCase(),
-                        style: const TextStyle(
-                            fontSize: 18, color: Colors.white),
+                        style:
+                            const TextStyle(fontSize: 18, color: Colors.white),
                       ),
                     ),
                   ),

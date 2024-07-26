@@ -1,19 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
-import '../../utils/barcode_provider.dart';
-import 'dart:typed_data';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:path_provider/path_provider.dart';
-import 'dart:io';
 
 class StartCountingScreen extends StatefulWidget {
   StartCountingScreen(
@@ -38,13 +32,31 @@ class _StartCountingScreenState extends State<StartCountingScreen> {
   String companyName = "";
   String whatsappNumber = "";
   String emailID = "";
+  String digit = "";
 
-  var barcodeProvider;
+  static const platform =
+      MethodChannel('com.example.parcel_counting_system/scanner');
+  String scannedData = '';
+  List<String> scannedDataList = [];
 
   @override
   void initState() {
     super.initState();
     getSettingsData();
+    platform.setMethodCallHandler(_handleMethod);
+  }
+
+  Future<void> _handleMethod(MethodCall call) async {
+    switch (call.method) {
+      case 'onScannedData':
+        setState(() {
+          scannedData += call.arguments;
+          scannedDataList = scannedData.trim().split(RegExp(r'\s+'));
+        });
+        break;
+      default:
+        print('Unknown method ${call.method}');
+    }
   }
 
   Future<void> getSettingsData() async {
@@ -60,11 +72,18 @@ class _StartCountingScreenState extends State<StartCountingScreen> {
           companyName = userDoc.get('companyName');
           whatsappNumber = userDoc.get('whatsapp');
           emailID = userDoc.get('email');
+          digit = userDoc.get('digit');
         });
       }
     } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$error')),
+      Fluttertoast.showToast(
+        msg: 'Failed to load data: $error',
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.SNACKBAR,
+        timeInSecForIosWeb: 1,
+        backgroundColor: Colors.red,
+        textColor: Colors.black,
+        fontSize: 16.0,
       );
     }
   }
@@ -85,19 +104,31 @@ class _StartCountingScreenState extends State<StartCountingScreen> {
               'vehicleNumber': vehicleNumber,
               'loadingId': loadingId,
               'barcodes': barcodes,
-              'count': barcodeProvider.barcodes.length,
+              'count': scannedDataList.length,
               'timestamp': FieldValue.serverTimestamp(),
             }
           },
           SetOptions(
               merge: true)); // Merge options to update or create if not exists
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Data saved successfully')),
+      Fluttertoast.showToast(
+        msg: 'Data saved successfully',
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.SNACKBAR,
+        timeInSecForIosWeb: 1,
+        backgroundColor: Colors.green,
+        textColor: Colors.black,
+        fontSize: 16.0,
       );
     } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save data: $error')),
+      Fluttertoast.showToast(
+        msg: 'Failed to save data: $error',
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.SNACKBAR,
+        timeInSecForIosWeb: 1,
+        backgroundColor: Colors.red,
+        textColor: Colors.black,
+        fontSize: 16.0,
       );
     }
   }
@@ -173,11 +204,11 @@ class _StartCountingScreenState extends State<StartCountingScreen> {
               pw.TableHelper.fromTextArray(
                 headers: ['Barcode List'],
                 data: List<List<dynamic>>.from(
-                    barcodeProvider.barcodes.map((barcode) => [barcode])),
+                    scannedDataList.map((barcode) => [barcode])),
               ),
               pw.SizedBox(height: 20),
               pw.Text(
-                'Total Count of Barcodes: ${barcodeProvider.barcodes.length}',
+                'Total Count of Barcodes: ${scannedDataList.length}',
                 style: pw.TextStyle(
                   fontWeight: pw.FontWeight.bold,
                   fontSize: 18,
@@ -207,21 +238,13 @@ class _StartCountingScreenState extends State<StartCountingScreen> {
     return pdf.save();
   }
 
-  Future<File> generatePdfFile(PdfPageFormat format) async {
-    final pdf = await _generatePdf(format);
-    final output = await getTemporaryDirectory();
-    final file = File("${output.path}/report.pdf");
-    await file.writeAsBytes(pdf);
-    return file;
-  }
-
-  void _showDuplicateDialog() {
+  void _showDigitNotEqualDialog() {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Duplicate Barcode'),
-          content: const Text('This barcode has already been scanned.'),
+          title: const Text('Not Equal to Required Digits'),
+          content: Text('Barcode Digits Not Equal to Required digits - $digit'),
           actions: [
             TextButton(
               onPressed: () {
@@ -235,216 +258,217 @@ class _StartCountingScreenState extends State<StartCountingScreen> {
     );
   }
 
+  Future<bool> _onWillPop() async {
+    scannedData = "";
+    scannedDataList.clear(); // Call clearBarcodes method here
+    return true; // Return true to allow the pop
+  }
+
   @override
   Widget build(BuildContext context) {
-    barcodeProvider = Provider.of<BarcodeProvider>(context);
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
         backgroundColor: Colors.white,
-        centerTitle: true,
-        title: const Text(
-          "Start Counting",
-          style: TextStyle(
-              fontWeight: FontWeight.bold, color: Colors.black, fontSize: 30),
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          centerTitle: true,
+          title: const Text(
+            "Start Counting",
+            style: TextStyle(
+                fontWeight: FontWeight.bold, color: Colors.black, fontSize: 30),
+          ),
         ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Veh No: ${widget.VehicalNumber}',
-                  style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  'Loading ID: ${widget.LoadingId}',
-                  style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            const SizedBox(
-              height: 10,
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Target Quantity: ${widget.quantity}',
-                  style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  'Count: ${barcodeProvider.barcodes.length}',
-                  style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            Expanded(
-              child: barcodeProvider.barcodes.isEmpty
-                  ? const Center(
-                      child: Text('Please start barcode scan'),
-                    )
-                  : ListView.builder(
-                      itemCount: barcodeProvider.barcodes.length,
-                      itemBuilder: (context, index) {
-                        String barcode = barcodeProvider.barcodes[index];
+        body: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Veh No: ${widget.VehicalNumber}',
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    'Loading ID: ${widget.LoadingId}',
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              const SizedBox(
+                height: 10,
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Target Quantity: ${widget.quantity}',
+                    style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    'Count: ${scannedDataList.length}',
+                    style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              Expanded(
+                child: scannedDataList.isEmpty
+                    ? const Center(
+                        child: Text('Please start barcode scan'),
+                      )
+                    : ListView.builder(
+                        itemCount: scannedDataList.length,
+                        itemBuilder: (context, index) {
+                          String barcode = scannedDataList[index];
 
-                        // Check for duplicate barcode
-                        if (duplicateBarcode &&
-                            barcodeProvider.barcodes
-                                .sublist(0, index)
-                                .contains(barcode)) {
-                          _showDuplicateDialog();
-                        }
+                          // Check for duplicate barcodes if duplicateBarcode is true
+                          if (duplicateBarcode &&
+                              scannedDataList
+                                  .where((element) => element == barcode)
+                                  .length >
+                                  1) {
+                            // Remove the duplicate barcode
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              setState(() {
+                                scannedDataList.removeAt(index);
+                              });
+                            });
 
-                        return ListTile(
-                          title: Text(barcode),
-                          trailing: const Text('1'),
+                            return Container(); // Return empty container to hide duplicate barcode
+                          }
+
+
+                          return ListTile(
+                            title: Text(barcode),
+                          );
+                        },
+                      ),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20.0),
+                      ),
+                    ),
+                    onPressed: () async {
+                      if (widget.quantity == scannedDataList.length) {
+                        // Generate and display the PDF
+                        await Printing.layoutPdf(
+                          onLayout: (PdfPageFormat format) =>
+                              _generatePdf(format),
                         );
-                      },
-                    ),
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20.0),
-                    ),
-                  ),
-                  onPressed: () async {
-                    if (widget.quantity == barcodeProvider.barcodes.length) {
-                      // Logic to hold and save
-                      saveDataToFirestore(
-                          widget.VehicalNumber,
-                          widget.LoadingId,
-                          barcodeProvider.barcodes,
-                          widget.countingOfficerName);
-
-                      Fluttertoast.showToast(
-                        msg: "Successfully Save Data",
-                        toastLength: Toast.LENGTH_SHORT,
-                        gravity: ToastGravity.BOTTOM,
-                        timeInSecForIosWeb: 1,
-                        backgroundColor: Colors.green,
-                        textColor: Colors.black,
-                        fontSize: 16.0,
-                      );
-
-                      // Generate and display the PDF
-                      await Printing.layoutPdf(
-                        onLayout: (PdfPageFormat format) =>
-                            _generatePdf(format),
-                      );
-                    } else {
-                      Fluttertoast.showToast(
-                        msg: "Target Quantity not equal to barcode count",
-                        toastLength: Toast.LENGTH_SHORT,
-                        gravity: ToastGravity.BOTTOM,
-                        timeInSecForIosWeb: 1,
-                        backgroundColor: Colors.red,
-                        textColor: Colors.black,
-                        fontSize: 16.0,
-                      );
-                    }
-                  },
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.picture_as_pdf,
-                        color: Colors.black,
-                      ),
-                      const SizedBox(
-                        width: 10,
-                      ),
-                      Text(
-                        "Get Report".toUpperCase(),
-                        style:
-                            const TextStyle(fontSize: 15, color: Colors.black),
-                      ),
-                    ],
-                  ),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20.0),
+                      } else {
+                        Fluttertoast.showToast(
+                          msg: "Target Quantity not equal to barcode count",
+                          toastLength: Toast.LENGTH_SHORT,
+                          gravity: ToastGravity.BOTTOM,
+                          timeInSecForIosWeb: 1,
+                          backgroundColor: Colors.red,
+                          textColor: Colors.black,
+                          fontSize: 16.0,
+                        );
+                      }
+                    },
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.picture_as_pdf,
+                          color: Colors.black,
+                        ),
+                        const SizedBox(
+                          width: 10,
+                        ),
+                        Text(
+                          "Get Report".toUpperCase(),
+                          style: const TextStyle(
+                              fontSize: 14, color: Colors.black),
+                        ),
+                      ],
                     ),
                   ),
-                  onPressed: () {
-                    if (widget.quantity == barcodeProvider.barcodes.length) {
-                      // Logic to hold and save
-                      saveDataToFirestore(
-                          widget.VehicalNumber,
-                          widget.LoadingId,
-                          barcodeProvider.barcodes,
-                          widget.countingOfficerName);
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20.0),
+                      ),
+                    ),
+                    onPressed: () {
+                      if (widget.quantity == scannedDataList.length) {
+                        // Logic to hold and save
+                        saveDataToFirestore(
+                            widget.VehicalNumber,
+                            widget.LoadingId,
+                            scannedDataList,
+                            widget.countingOfficerName);
 
-                      Fluttertoast.showToast(
-                        msg: "Successfully Save Data",
-                        toastLength: Toast.LENGTH_SHORT,
-                        gravity: ToastGravity.BOTTOM,
-                        timeInSecForIosWeb: 1,
-                        backgroundColor: Colors.green,
-                        textColor: Colors.black,
-                        fontSize: 16.0,
-                      );
+                        Fluttertoast.showToast(
+                          msg: "Successfully Save Data",
+                          toastLength: Toast.LENGTH_SHORT,
+                          gravity: ToastGravity.BOTTOM,
+                          timeInSecForIosWeb: 1,
+                          backgroundColor: Colors.green,
+                          textColor: Colors.black,
+                          fontSize: 16.0,
+                        );
 
-                      Navigator.pop(context);
-                    } else {
-                      Fluttertoast.showToast(
-                        msg: "Target Quantity not equal to barcode count",
-                        toastLength: Toast.LENGTH_SHORT,
-                        gravity: ToastGravity.BOTTOM,
-                        timeInSecForIosWeb: 1,
-                        backgroundColor: Colors.red,
-                        textColor: Colors.black,
-                        fontSize: 16.0,
-                      );
-                    }
-                  },
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.save,
-                        color: Colors.black,
-                      ),
-                      const SizedBox(
-                        width: 10,
-                      ),
-                      Text(
-                        "Save Data".toUpperCase(),
-                        style:
-                            const TextStyle(fontSize: 15, color: Colors.black),
-                      ),
-                    ],
+                        scannedDataList.clear();
+                        scannedData = "";
+                        Navigator.pop(context);
+                      } else {
+                        Fluttertoast.showToast(
+                          msg: "Target Quantity not equal to barcode count",
+                          toastLength: Toast.LENGTH_SHORT,
+                          gravity: ToastGravity.BOTTOM,
+                          timeInSecForIosWeb: 1,
+                          backgroundColor: Colors.red,
+                          textColor: Colors.black,
+                          fontSize: 16.0,
+                        );
+                      }
+                    },
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.save,
+                          color: Colors.black,
+                        ),
+                        const SizedBox(
+                          width: 10,
+                        ),
+                        Text(
+                          "Save Data".toUpperCase(),
+                          style: const TextStyle(
+                              fontSize: 14, color: Colors.black),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
+        floatingActionButton: FloatingActionButtonWithOptions(
+          whatsapp: whatsappNumber,
+          email: emailID,
+          quantity: widget.quantity,
+          barcodeProvider: scannedDataList,
+          globalKey: widget.globalKey,
+        ),
+        floatingActionButtonLocation: CustomFabLocation(),
       ),
-      floatingActionButton: FloatingActionButtonWithOptions(
-        whatsapp: whatsappNumber,
-        email: emailID,
-        quantity: widget.quantity,
-        barcodeProvider: barcodeProvider,
-        globalKey: widget.globalKey,
-      ),
-      floatingActionButtonLocation: CustomFabLocation(),
     );
   }
 }
@@ -462,12 +486,12 @@ class CustomFabLocation extends FloatingActionButtonLocation {
 
 class FloatingActionButtonWithOptions extends StatelessWidget {
   final int quantity;
-  final BarcodeProvider barcodeProvider;
+  final List<String> barcodeProvider;
   final String whatsapp;
   final String email;
   final GlobalKey<_StartCountingScreenState> globalKey;
 
-  FloatingActionButtonWithOptions({
+  const FloatingActionButtonWithOptions({
     super.key,
     required this.email,
     required this.whatsapp,
@@ -477,55 +501,11 @@ class FloatingActionButtonWithOptions extends StatelessWidget {
   });
 
   void _launchWhatsApp() async {
-    const message = 'Hello, this is a test message!';
 
-    final url = 'https://wa.me/$whatsapp?text=${Uri.encodeComponent(message)}';
-    if (await canLaunch(url)) {
-      await launch(url);
-    } else {
-      throw 'Could not launch $url';
-    }
-  }
-
-  Future<String> uploadFile(String filePath) async {
-    File file = File(filePath);
-
-    try {
-      TaskSnapshot snapshot = await FirebaseStorage.instance
-          .ref('uploads/${file.path}')
-          .putFile(file);
-
-      if (snapshot.state == TaskState.success) {
-        String downloadURL = await snapshot.ref.getDownloadURL();
-        return downloadURL;
-      } else {
-        throw 'Could not upload file';
-      }
-    } catch (e) {
-      print(e);
-      throw 'Could not upload file';
-    }
   }
 
   Future<void> _launchEmail() async {
-    final pdfFile =
-        await globalKey.currentState!.generatePdfFile(PdfPageFormat.a4);
-    const subject = 'Loading Report';
-    const body = 'Please find the attached report.';
 
-    // Replace with your file path
-    final filePath = pdfFile.path;
-    final downloadURL = await uploadFile(filePath);
-
-    final fullBody = '$body\n\nDownload the attachment here: $downloadURL';
-
-    final url =
-        'mailto:$email?subject=${Uri.encodeComponent(subject)}&body=${Uri.encodeComponent(fullBody)}';
-    if (await canLaunch(url)) {
-      await launch(url);
-    } else {
-      throw 'Could not launch $url';
-    }
   }
 
   @override
@@ -537,7 +517,7 @@ class FloatingActionButtonWithOptions extends StatelessWidget {
         onSelected: (value) {
           switch (value) {
             case 0:
-              if (quantity == barcodeProvider.barcodes.length) {
+              if (quantity == barcodeProvider.length) {
                 _launchWhatsApp();
               } else {
                 Fluttertoast.showToast(
@@ -552,7 +532,7 @@ class FloatingActionButtonWithOptions extends StatelessWidget {
               }
               break;
             case 1:
-              if (quantity == barcodeProvider.barcodes.length) {
+              if (quantity == barcodeProvider.length) {
                 _launchEmail();
               } else {
                 Fluttertoast.showToast(

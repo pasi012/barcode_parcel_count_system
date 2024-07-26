@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -120,9 +121,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _isLoading = false;
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Data saved successfully!')),
+        Fluttertoast.showToast(
+          msg: 'Data saved successfully!',
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.SNACKBAR,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.green,
+          textColor: Colors.black,
+          fontSize: 16.0,
         );
+
       }
     }
   }
@@ -237,7 +245,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       width: 20,
                     ),
                     SizedBox(
-                      width: 150,
+                      width: 120,
                       height: 50,
                       child: ElevatedButton(
                         onPressed: _pickImage,

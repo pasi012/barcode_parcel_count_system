@@ -1,54 +1,40 @@
 package com.example.parcel_counting_system
 
-import android.hardware.usb.UsbDevice
-import android.hardware.usb.UsbManager
-import androidx.annotation.NonNull
+import android.os.Bundle
 import io.flutter.embedding.android.FlutterActivity
-import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
+import android.view.KeyEvent
 
 class MainActivity: FlutterActivity() {
-    private val CHANNEL = "com.example.barcode/usb"
-    private lateinit var usbManager: UsbManager
+    private val CHANNEL = "com.example.parcel_counting_system/scanner"
 
-    override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
+    override fun configureFlutterEngine(flutterEngine: io.flutter.embedding.engine.FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler {
-                call, result ->
-            if (call.method == "initializeUSB") {
-                initializeUSB(result)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
+            if (call.method == "getScannedData") {
+                val data = getScannedData() // Implement this method to get scanned data
+                result.success(data)
             } else {
                 result.notImplemented()
             }
         }
     }
 
-    private fun initializeUSB(result: MethodChannel.Result) {
-        usbManager = getSystemService(Context.USB_SERVICE) as UsbManager
-        val filter = IntentFilter()
-        filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED)
-        filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED)
-        registerReceiver(usbReceiver, filter)
-        result.success(null)
-    }
-
-    private val usbReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            val action = intent.action
-            val device = intent.getParcelableExtra<UsbDevice>(UsbManager.EXTRA_DEVICE)
-            if (UsbManager.ACTION_USB_DEVICE_ATTACHED == action) {
-                device?.let {
-                    // Handle USB device attached
-                }
-            } else if (UsbManager.ACTION_USB_DEVICE_DETACHED == action) {
-                device?.let {
-                    // Handle USB device detached
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        if (event?.action == KeyEvent.ACTION_DOWN) {
+            val char = event.unicodeChar.toChar()
+            if (char != null) {
+                // Send the character to Flutter
+                flutterEngine?.dartExecutor?.binaryMessenger?.let {
+                    MethodChannel(it, CHANNEL).invokeMethod("onScannedData", char.toString())
                 }
             }
         }
+        return super.onKeyDown(keyCode, event)
+    }
+
+    private fun getScannedData(): String {
+        // Implement this method to return the scanned data
+        return "Sample Data"
     }
 }

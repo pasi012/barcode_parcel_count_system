@@ -70,13 +70,19 @@ class _EditLoadingDetailsScreenState extends State<EditLoadingDetailsScreen> {
         toastLength: Toast.LENGTH_SHORT,
         gravity: ToastGravity.BOTTOM,
         timeInSecForIosWeb: 1,
-        backgroundColor: Colors.blue,
-        textColor: Colors.white,
+        backgroundColor: Colors.green,
+        textColor: Colors.black,
         fontSize: 16.0,
       );
     } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update data: $error')),
+      Fluttertoast.showToast(
+        msg: 'Failed to update data: $error',
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.SNACKBAR,
+        timeInSecForIosWeb: 1,
+        backgroundColor: Colors.red,
+        textColor: Colors.black,
+        fontSize: 16.0,
       );
     } finally {
       setState(() => _isLoading = false);

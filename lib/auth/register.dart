@@ -34,7 +34,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
             Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const SizedBox(height: 50,),
+                const SizedBox(
+                  height: 50,
+                ),
                 const Text(
                   "Parcel Counting System",
                   style: TextStyle(
@@ -97,8 +99,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           decoration: InputDecoration(
                             filled: true,
                             fillColor: Colors.grey[200], // Background color
-                            hintText:
-                            'Enter Your Name', // Floating label text
+                            hintText: 'Enter Your Name', // Floating label text
                             hintStyle: const TextStyle(
                                 color: Colors
                                     .grey), // Color of the floating label text
@@ -111,8 +112,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               borderRadius: BorderRadius.circular(
                                   8.0), // Rounded corners when focused (optional)
                               borderSide: const BorderSide(
-                                  color: Colors
-                                      .blue), // Border color when focused
+                                  color:
+                                      Colors.blue), // Border color when focused
                             ),
                           ),
                           style: const TextStyle(color: Colors.black),
@@ -139,7 +140,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           validator: (value) {
                             if (value!.length < 7) {
                               return "Please enter 8 digits number";
-                            }if(value.isEmpty){
+                            }
+                            if (value.isEmpty) {
                               return "This Field is missing";
                             } else {
                               return null;
@@ -151,7 +153,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             filled: true,
                             fillColor: Colors.grey[200], // Background color
                             hintText:
-                            'Enter Your Password', // Floating label text
+                                'Enter Your Password', // Floating label text
                             hintStyle: const TextStyle(
                                 color: Colors
                                     .grey), // Color of the floating label text
@@ -164,8 +166,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               borderRadius: BorderRadius.circular(
                                   8.0), // Rounded corners when focused (optional)
                               borderSide: const BorderSide(
-                                  color: Colors
-                                      .blue), // Border color when focused
+                                  color:
+                                      Colors.blue), // Border color when focused
                             ),
                           ),
                           style: const TextStyle(color: Colors.black),
@@ -177,7 +179,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 10,),
+                const SizedBox(
+                  height: 10,
+                ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 50.0),
                   child: SizedBox(
@@ -199,10 +203,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           });
 
                           try {
-                            var user = await _authService
-                                .registerWithUsernamePassword(
-                                _fullNameController.text.trim(),
-                                _passTextController.text.trim());
+                            var user =
+                                await _authService.registerWithUsernamePassword(
+                                    _fullNameController.text.trim(),
+                                    _passTextController.text.trim(),
+                                );
 
                             if (user != null) {
                               Fluttertoast.showToast(
@@ -223,7 +228,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             } else {
                               setState(() {
                                 Fluttertoast.showToast(
-                                  msg: 'Invalid username or password',
+                                  msg: 'This User Already have been Registered',
                                   toastLength: Toast.LENGTH_SHORT,
                                   gravity: ToastGravity.SNACKBAR,
                                   timeInSecForIosWeb: 1,
@@ -254,8 +259,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       },
                       child: Text(
                         "Register".toUpperCase(),
-                        style: const TextStyle(
-                            fontSize: 18, color: Colors.white),
+                        style:
+                            const TextStyle(fontSize: 18, color: Colors.white),
                       ),
                     ),
                   ),

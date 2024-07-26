@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:parcel_counting_system/home/settings_screen.dart';
 import 'package:parcel_counting_system/utils/footer.dart';
 import 'editLoadings/edit_loading_screen.dart';
@@ -39,8 +40,14 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
     } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$error')),
+      Fluttertoast.showToast(
+        msg: 'Failed to load data: $error',
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.SNACKBAR,
+        timeInSecForIosWeb: 1,
+        backgroundColor: Colors.red,
+        textColor: Colors.black,
+        fontSize: 16.0,
       );
     }
   }
