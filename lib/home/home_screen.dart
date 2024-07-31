@@ -40,15 +40,18 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
     } catch (error) {
-      Fluttertoast.showToast(
-        msg: 'Failed to load data: $error',
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.SNACKBAR,
-        timeInSecForIosWeb: 1,
-        backgroundColor: Colors.red,
-        textColor: Colors.black,
-        fontSize: 16.0,
-      );
+
+      print(error);
+
+      // Fluttertoast.showToast(
+      //   msg: 'Failed to load data: $error',
+      //   toastLength: Toast.LENGTH_SHORT,
+      //   gravity: ToastGravity.SNACKBAR,
+      //   timeInSecForIosWeb: 1,
+      //   backgroundColor: Colors.red,
+      //   textColor: Colors.black,
+      //   fontSize: 16.0,
+      // );
     }
   }
 

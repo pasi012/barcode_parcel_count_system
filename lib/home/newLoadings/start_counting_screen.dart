@@ -30,8 +30,6 @@ class StartCountingScreen extends StatefulWidget {
 class _StartCountingScreenState extends State<StartCountingScreen> {
   bool duplicateBarcode = false;
   String companyName = "";
-  String whatsappNumber = "";
-  String emailID = "";
   String digit = "";
 
   static const platform =
@@ -70,8 +68,6 @@ class _StartCountingScreenState extends State<StartCountingScreen> {
         setState(() {
           duplicateBarcode = userDoc.get('duplicateBarcode');
           companyName = userDoc.get('companyName');
-          whatsappNumber = userDoc.get('whatsapp');
-          emailID = userDoc.get('email');
           digit = userDoc.get('digit');
         });
       }
@@ -88,8 +84,13 @@ class _StartCountingScreenState extends State<StartCountingScreen> {
     }
   }
 
-  Future<void> saveDataToFirestore(String vehicleNumber, String loadingId,
-      List<String> barcodes, String countingOfficerName) async {
+  Future<void> saveDataToFirestore(
+      String vehicleNumber,
+      String loadingId,
+      List<String> barcodes,
+      int targetQuantity,
+      int scannedBarcodeCount,
+      String countingOfficerName) async {
     try {
       String _uid = FirebaseAuth.instance.currentUser!.uid;
       final _uuid = const Uuid().v4();
@@ -104,7 +105,8 @@ class _StartCountingScreenState extends State<StartCountingScreen> {
               'vehicleNumber': vehicleNumber,
               'loadingId': loadingId,
               'barcodes': barcodes,
-              'count': scannedDataList.length,
+              'targetQuantity': targetQuantity,
+              'count': scannedBarcodeCount,
               'timestamp': FieldValue.serverTimestamp(),
             }
           },
@@ -326,12 +328,22 @@ class _StartCountingScreenState extends State<StartCountingScreen> {
                         itemBuilder: (context, index) {
                           String barcode = scannedDataList[index];
 
+                          // if(scannedData.length != int.parse(digit)){
+                          //   WidgetsBinding.instance.addPostFrameCallback((_) {
+                          //     setState(() {
+                          //       scannedDataList.removeAt(index);
+                          //     });
+                          //     _showDigitNotEqualDialog();
+                          //   });
+                          //
+                          //   return Container();
+                          // }
+
                           // Check for duplicate barcodes if duplicateBarcode is true
-                          if (duplicateBarcode &&
+                          if (duplicateBarcode == false &&
                               scannedDataList
-                                  .where((element) => element == barcode)
-                                  .length >
-                                  1) {
+                                  .sublist(0, index)
+                                  .contains(barcode)) {
                             // Remove the duplicate barcode
                             WidgetsBinding.instance.addPostFrameCallback((_) {
                               setState(() {
@@ -341,7 +353,6 @@ class _StartCountingScreenState extends State<StartCountingScreen> {
 
                             return Container(); // Return empty container to hide duplicate barcode
                           }
-
 
                           return ListTile(
                             title: Text(barcode),
@@ -404,12 +415,14 @@ class _StartCountingScreenState extends State<StartCountingScreen> {
                       ),
                     ),
                     onPressed: () {
-                      if (widget.quantity == scannedDataList.length) {
+                      if (widget.quantity >= scannedDataList.length) {
                         // Logic to hold and save
                         saveDataToFirestore(
                             widget.VehicalNumber,
                             widget.LoadingId,
                             scannedDataList,
+                            widget.quantity,
+                            scannedDataList.length,
                             widget.countingOfficerName);
 
                         Fluttertoast.showToast(
@@ -460,105 +473,27 @@ class _StartCountingScreenState extends State<StartCountingScreen> {
             ],
           ),
         ),
-        floatingActionButton: FloatingActionButtonWithOptions(
-          whatsapp: whatsappNumber,
-          email: emailID,
-          quantity: widget.quantity,
-          barcodeProvider: scannedDataList,
-          globalKey: widget.globalKey,
-        ),
-        floatingActionButtonLocation: CustomFabLocation(),
       ),
     );
   }
-}
 
-class CustomFabLocation extends FloatingActionButtonLocation {
-  @override
-  Offset getOffset(ScaffoldPrelayoutGeometry scaffoldGeometry) {
-    // Customize the position
-    double x = scaffoldGeometry.scaffoldSize.width - 80;
-    double y = scaffoldGeometry.scaffoldSize.height -
-        150; // 100 pixels from the bottom
-    return Offset(x, y);
-  }
-}
-
-class FloatingActionButtonWithOptions extends StatelessWidget {
-  final int quantity;
-  final List<String> barcodeProvider;
-  final String whatsapp;
-  final String email;
-  final GlobalKey<_StartCountingScreenState> globalKey;
-
-  const FloatingActionButtonWithOptions({
-    super.key,
-    required this.email,
-    required this.whatsapp,
-    required this.barcodeProvider,
-    required this.quantity,
-    required this.globalKey,
-  });
-
-  void _launchWhatsApp() async {
-
-  }
-
-  Future<void> _launchEmail() async {
-
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FloatingActionButton(
-      onPressed: () {},
-      child: PopupMenuButton<int>(
-        icon: const Icon(Icons.share),
-        onSelected: (value) {
-          switch (value) {
-            case 0:
-              if (quantity == barcodeProvider.length) {
-                _launchWhatsApp();
-              } else {
-                Fluttertoast.showToast(
-                  msg: "Target Quantity not equal to barcode count",
-                  toastLength: Toast.LENGTH_SHORT,
-                  gravity: ToastGravity.BOTTOM,
-                  timeInSecForIosWeb: 1,
-                  backgroundColor: Colors.red,
-                  textColor: Colors.black,
-                  fontSize: 16.0,
-                );
-              }
-              break;
-            case 1:
-              if (quantity == barcodeProvider.length) {
-                _launchEmail();
-              } else {
-                Fluttertoast.showToast(
-                  msg: "Target Quantity not equal to barcode count",
-                  toastLength: Toast.LENGTH_SHORT,
-                  gravity: ToastGravity.BOTTOM,
-                  timeInSecForIosWeb: 1,
-                  backgroundColor: Colors.red,
-                  textColor: Colors.black,
-                  fontSize: 16.0,
-                );
-              }
-              break;
-          }
-        },
-        itemBuilder: (context) => [
-          const PopupMenuItem(
-            value: 0,
-            child: Text('WhatsApp'),
-          ),
-          const PopupMenuItem(
-            value: 1,
-            child: Text('Email'),
-          ),
-        ],
-      ),
-    );
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      saveDataToFirestore(
+          widget.VehicalNumber,
+          widget.LoadingId,
+          scannedDataList,
+          widget.quantity,
+          scannedDataList.length,
+          widget.countingOfficerName);
+    } else if (state == AppLifecycleState.inactive) {
+      saveDataToFirestore(
+          widget.VehicalNumber,
+          widget.LoadingId,
+          scannedDataList,
+          widget.quantity,
+          scannedDataList.length,
+          widget.countingOfficerName);
+    }
   }
 }
